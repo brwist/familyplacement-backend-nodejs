@@ -24,13 +24,11 @@ const createFamily = catchAsync(async (req, res) => {
     });
   }
   const newFamily = await Family.create({ name, country, characteristics });
-return  res
-    .status(httpStatus.OK)
-    .json({
-      success: true,
-      message: "family created successfully!",
-      newFamily,
-    });
+  return res.status(httpStatus.OK).json({
+    success: true,
+    message: "family created successfully!",
+    newFamily,
+  });
 });
 
 const updateApiParamsSchema = Joi.object({
@@ -57,20 +55,24 @@ const editFamily = catchAsync(async (req, res) => {
     { new: true }
   );
 
-  return res
-    .status(httpStatus.OK)
-    .json({
-      success: true,
-      message: "family edited successfully!",
-      updatedFamily,
-    });
+  return res.status(httpStatus.OK).json({
+    success: true,
+    message: "family edited successfully!",
+    updatedFamily,
+  });
 });
 
 const getFamilies = catchAsync(async (req, res) => {
   const families = await Family.find();
- return res
+  return res
     .status(httpStatus.OK)
     .json({ success: true, message: "Family edited successfully!", families });
 });
 
-export { createFamily, editFamily, getFamilies };
+const getFamily = catchAsync(async (req, res) => {
+  const _id = req.param("id");
+  const family = await Family.findById(_id);
+  return res.status(httpStatus.OK).json({ success: true, family });
+});
+
+export { createFamily, editFamily, getFamilies, getFamily };

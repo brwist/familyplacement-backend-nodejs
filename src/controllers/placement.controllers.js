@@ -2,6 +2,7 @@ import catchAsync from "../utils/catchAsync";
 import Placement from "../models/PlacementModel";
 import Joi from "@hapi/joi";
 import httpStatus from "http-status";
+import mongoose from "mongoose";
 
 const createApiParamsSchema = Joi.object({
   name: Joi.string().required(),
@@ -37,7 +38,6 @@ const updateApiParamsSchema = Joi.object({
 const editPlacement = catchAsync(async (req, res) => {
   const { ...fieldsToUpdate } = req.body;
   const _id = req.param("id");
-  console.log("id", _id);
   const { error } = updateApiParamsSchema.validate({ ...fieldsToUpdate });
   if (error) {
     return res.status(400).send({
@@ -60,41 +60,51 @@ const editPlacement = catchAsync(async (req, res) => {
   });
 });
 
-const getPlacements = catchAsync(async (req, res) => {
-  const fieldsMatchingAggregation = {
-    $lookup: {
-      from: "familydatas",
-      let: {
-        allergic_friendly: "$criteria.allergic_friendly",
-        spare_bedroom: "$criteria.spare_bedroom",
-        experienced: "$criteria.experienced",
-      },
-      pipeline: [
-        {
-          $match: {
-            $expr: {
-              $or: [
-                {
-                  $eq: [
-                    "$characteristics.allergic_friendly",
-                    "$$allergic_friendly",
-                  ],
-                },
-                {
-                  $eq: ["$characteristics.spare_bedroom", "$$spare_bedroom"],
-                },
-                {
-                  $eq: ["$characteristics.experienced", "$$experienced"],
-                },
-              ],
-            },
+const fieldsMatchingAggregation = {
+  $lookup: {
+    from: "familydatas",
+    let: {
+      allergic_friendly: "$criteria.allergic_friendly",
+      spare_bedroom: "$criteria.spare_bedroom",
+      experienced: "$criteria.experienced",
+    },
+    pipeline: [
+      {
+        $match: {
+          $expr: {
+            $or: [
+              {
+                $eq: [
+                  "$characteristics.allergic_friendly",
+                  "$$allergic_friendly",
+                ],
+              },
+              {
+                $eq: ["$characteristics.spare_bedroom", "$$spare_bedroom"],
+              },
+              {
+                $eq: ["$characteristics.experienced", "$$experienced"],
+              },
+            ],
           },
         },
-      ],
-      as: "families",
-    },
-  };
+      },
+    ],
+    as: "families",
+  },
+};
 
+const getPlacement = catchAsync(async (req, res) => {
+  let _id = req.param("id");
+  _id = mongoose.Types.ObjectId(_id);
+  const placement = await Placement.aggregate([
+    { $match: { _id } },
+    fieldsMatchingAggregation,
+  ]);
+
+  return res.status(httpStatus.OK).json({ placement: placement[0], success: true });
+});
+const getPlacements = catchAsync(async (req, res) => {
   const placementsWithSameCountry = await Placement.aggregate([
     { $match: { "criteria.same_country": true } },
     fieldsMatchingAggregation,
@@ -108,13 +118,13 @@ const getPlacements = catchAsync(async (req, res) => {
     success: true,
     message: "Placements fetched successfully!",
     placements: [
-      sortPlacements(placementsWithSameCountry),
-      sortPlacements(placementWithNoSameCountry),
+      ...sortPlacements(placementsWithSameCountry, 1),
+      ...sortPlacements(placementWithNoSameCountry, 0),
     ].sort((a, b) => a.createdAt - b.createdAt),
   });
 });
 
-const sortPlacements = (placements) => {
+const sortPlacements = (placements, matchingCountInitialValue) => {
   return placements.map(({ criteria, families, ...rest }) => {
     return {
       ...rest,
@@ -126,7 +136,7 @@ const sortPlacements = (placements) => {
             "spare_bedroom",
             "experienced",
           ];
-          let matchingCount = 0;
+          let matchingCount = matchingCountInitialValue;
 
           matchingArray.forEach((key) => {
             if (characteristics[key] === criteria[key]) matchingCount++;
@@ -143,4 +153,4 @@ const sortPlacements = (placements) => {
   });
 };
 
-export { createPlacement, editPlacement, getPlacements };
+export { createPlacement, editPlacement, getPlacements, getPlacement };

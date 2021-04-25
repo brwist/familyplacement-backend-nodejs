@@ -1,12 +1,16 @@
-import express from 'express'
-import { createPlacement, editPlacement, getPlacements } from '../controllers/placement.controllers'
+import express from "express";
+import {
+  createPlacement,
+  editPlacement,
+  getPlacements,
+  getPlacement,
+} from "../controllers/placement.controllers";
 
+const router = express.Router();
 
-const router = express.Router()
+router.post("/create", createPlacement);
+router.put("/edit/:id", editPlacement);
+router.get("/", getPlacements);
+router.get("/specific/:id", getPlacement);
 
-router.post('/create', createPlacement)
-router.put('/edit/:id', editPlacement)
-router.get('/', getPlacements)
-
-
-module.exports = router
+module.exports = router;
