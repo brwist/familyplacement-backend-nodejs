@@ -47,19 +47,26 @@ const editFamily = catchAsync(async (req, res) => {
       message: error?.details?.[0]?.message,
     });
   }
-  const updatedFamily = await Family.findByIdAndUpdate(
-    {
-      _id,
-    },
-    fieldsToUpdate,
-    { new: true }
-  );
 
-  return res.status(httpStatus.OK).json({
-    success: true,
-    message: "family edited successfully!",
-    updatedFamily,
-  });
+  try {
+    const updatedFamily = await Family.findByIdAndUpdate(
+      {
+        _id,
+      },
+      fieldsToUpdate,
+      { new: true }
+    );
+
+    return res.status(httpStatus.OK).json({
+      success: true,
+      message: "family edited successfully!",
+      updatedFamily,
+    });
+  } catch (error) {
+    return res
+      .status(httpStatus.BAD_REQUEST)
+      .json({ success: false, message: "No Family found with this ID" });
+  }
 });
 
 const getFamilies = catchAsync(async (req, res) => {
@@ -71,8 +78,15 @@ const getFamilies = catchAsync(async (req, res) => {
 
 const getFamily = catchAsync(async (req, res) => {
   const _id = req.param("id");
-  const family = await Family.findById(_id);
-  return res.status(httpStatus.OK).json({ success: true, family });
+  try {
+    const family = await Family.findById(_id);
+
+    return res.status(httpStatus.OK).json({ success: true, family });
+  } catch (error) {
+    return res
+      .status(httpStatus.BAD_REQUEST)
+      .json({ success: false, message: "No Family found with this ID" });
+  }
 });
 
 export { createFamily, editFamily, getFamilies, getFamily };

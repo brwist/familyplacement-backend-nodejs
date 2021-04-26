@@ -32,7 +32,7 @@ const createPlacement = catchAsync(async (req, res) => {
 const updateApiParamsSchema = Joi.object({
   name: Joi.string(),
   country: Joi.string(),
-  characteristics: Joi.object(),
+  criteria: Joi.object(),
 });
 
 const editPlacement = catchAsync(async (req, res) => {
@@ -96,13 +96,21 @@ const fieldsMatchingAggregation = {
 
 const getPlacement = catchAsync(async (req, res) => {
   let _id = req.param("id");
-  _id = mongoose.Types.ObjectId(_id);
-  const placement = await Placement.aggregate([
-    { $match: { _id } },
-    fieldsMatchingAggregation,
-  ]);
+  try {
+    _id = mongoose.Types.ObjectId(_id);
+    const placement = await Placement.aggregate([
+      { $match: { _id } },
+      fieldsMatchingAggregation,
+    ]);
 
-  return res.status(httpStatus.OK).json({ placement: placement[0], success: true });
+    return res
+      .status(httpStatus.OK)
+      .json({ placement: placement[0], success: true });
+  } catch (error) {
+    return res
+      .status(httpStatus.BAD_REQUEST)
+      .json({ success: false, message: "No Placement found with this ID" });
+  }
 });
 const getPlacements = catchAsync(async (req, res) => {
   const placementsWithSameCountry = await Placement.aggregate([
